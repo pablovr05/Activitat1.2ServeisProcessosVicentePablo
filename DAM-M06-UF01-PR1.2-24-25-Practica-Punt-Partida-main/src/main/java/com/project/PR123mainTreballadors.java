@@ -3,6 +3,7 @@ package com.project;
 import com.project.excepcions.IOFitxerExcepcio;
 import com.project.utilitats.UtilsCSV;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -58,7 +59,29 @@ public class PR123mainTreballadors {
 
     // Mètode per mostrar els treballadors llegint el fitxer CSV
     public void mostrarTreballadors() throws IOFitxerExcepcio {
-        // *************** CODI PRÀCTICA **********************/
+        List<String> treballadorsCSV = llegirFitxerCSV();
+
+        if (treballadorsCSV.isEmpty()) {
+            System.out.println("No hi ha treballadors per mostrar.");
+            return;
+        }
+
+        // Mostrar capçalera
+        String capcalera = treballadorsCSV.get(0);
+        String[] columnes = capcalera.split(",");
+        System.out.println(String.join(" | ", columnes));
+
+        // Mostrar separador
+        StringBuilder separador = new StringBuilder();
+        for (String col : columnes) {
+            separador.append("-".repeat(col.length())).append(" | ");
+        }
+        System.out.println(separador.toString());
+
+        // Mostrar treballadors
+        for (int i = 1; i < treballadorsCSV.size(); i++) {
+            System.out.println(treballadorsCSV.get(i).replace(",", " | "));
+        }
     }
 
     // Mètode per modificar un treballador (interactiu)
@@ -71,24 +94,86 @@ public class PR123mainTreballadors {
         System.out.print("Quina dada vols modificar (Nom, Cognom, Departament, Salari)? ");
         String columna = scanner.nextLine();
 
+        // Validar columna
+        if (!columna.equalsIgnoreCase("Nom") &&
+            !columna.equalsIgnoreCase("Cognom") &&
+            !columna.equalsIgnoreCase("Departament") &&
+            !columna.equalsIgnoreCase("Salari")) {
+            System.out.println("Dada no vàlida. Les opcions són: Nom, Cognom, Departament, Salari.");
+            return;
+        }
+
         // Demanar el nou valor
         System.out.print("Introdueix el nou valor per a " + columna + ": ");
         String nouValor = scanner.nextLine();
 
         // Modificar treballador
-        modificarTreballador(id, columna, nouValor);
+        boolean modificat = modificarTreballador(id, columna, nouValor);
+
+        if (modificat) {
+            System.out.println("Treballador modificat correctament.");
+            mostrarTreballadors();
+            System.out.print("Vols guardar els canvis? (s/n): ");
+            String resposta = scanner.nextLine();
+            if (resposta.equalsIgnoreCase("s")) {
+                System.out.println("Canvis guardats.");
+            } else {
+                System.out.println("Canvis no guardats.");
+                // Recarregar el fitxer per descartar canvis no guardats
+                mostrarTreballadors();
+            }
+        } else {
+            System.out.println("No s'ha trobat cap treballador amb l'ID proporcionat.");
+        }
     }
 
     // Mètode que modifica treballador (per a tests i usuaris) llegint i escrivint sobre disc
-    public void modificarTreballador(String id, String columna, String nouValor) throws IOFitxerExcepcio {
-        // *************** CODI PRÀCTICA **********************/
+    public boolean modificarTreballador(String id, String columna, String nouValor) throws IOFitxerExcepcio {
+        List<String> treballadorsCSV = llegirFitxerCSV();
+        boolean trobat = false;
+
+        if (treballadorsCSV.isEmpty()) {
+            throw new IOFitxerExcepcio("El fitxer està buit.");
+        }
+
+        // Trobar l'índex de la columna
+        String capcalera = treballadorsCSV.get(0);
+        String[] columnes = capcalera.split(",");
+        int indexColumna = -1;
+        for (int i = 0; i < columnes.length; i++) {
+            if (columnes[i].equalsIgnoreCase(columna)) {
+                indexColumna = i;
+                break;
+            }
+        }
+
+        if (indexColumna == -1) {
+            throw new IOFitxerExcepcio("Columna " + columna + " no trobada.");
+        }
+
+        // Iterar sobre les línies per trobar l'ID
+        for (int i = 1; i < treballadorsCSV.size(); i++) {
+            String[] dades = treballadorsCSV.get(i).split(",");
+            if (dades[0].equals(id)) {
+                dades[indexColumna] = nouValor;
+                treballadorsCSV.set(i, String.join(",", dades));
+                trobat = true;
+                break;
+            }
+        }
+
+        if (trobat) {
+            escriureFitxerCSV(treballadorsCSV);
+        }
+
+        return trobat;
     }
 
     // Encapsulació de llegir el fitxer CSV
     private List<String> llegirFitxerCSV() throws IOFitxerExcepcio {
         List<String> treballadorsCSV = UtilsCSV.llegir(filePath);
         if (treballadorsCSV == null) {
-            throw new IOFitxerExcepcio("Error en llegir el fitxer.");
+            throw new IOFitxerExcepcio("Error en llegir el fitxer: " + filePath);
         }
         return treballadorsCSV;
     }
@@ -98,7 +183,7 @@ public class PR123mainTreballadors {
         try {
             UtilsCSV.escriure(filePath, treballadorsCSV);
         } catch (Exception e) {
-            throw new IOFitxerExcepcio("Error en escriure el fitxer.", e);
+            throw new IOFitxerExcepcio("Error en escriure el fitxer: " + filePath, e);
         }
     }
 
@@ -106,5 +191,5 @@ public class PR123mainTreballadors {
     public static void main(String[] args) {
         PR123mainTreballadors programa = new PR123mainTreballadors();
         programa.iniciar();
-    }    
+    }
 }

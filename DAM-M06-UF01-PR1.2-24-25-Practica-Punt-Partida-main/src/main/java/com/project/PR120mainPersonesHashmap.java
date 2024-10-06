@@ -11,10 +11,10 @@ public class PR120mainPersonesHashmap {
 
     public static void main(String[] args) {
         HashMap<String, Integer> persones = new HashMap<>();
-        persones.put("Anna", 25);
-        persones.put("Bernat", 30);
         persones.put("Carla", 22);
+        persones.put("Bernat", 30);
         persones.put("David", 35);
+        persones.put("Anna", 25);
         persones.put("Elena", 28);
 
         try {
@@ -25,60 +25,40 @@ public class PR120mainPersonesHashmap {
         }
     }
 
-    // Getter per a filePath
     public static String getFilePath() {
         return filePath;
     }
 
-    // Setter per a filePath
     public static void setFilePath(String newFilePath) {
         filePath = newFilePath;
     }
 
-    // Mètode per escriure les persones al fitxer
     public static void escriurePersones(HashMap<String, Integer> persones) throws IOFitxerExcepcio {
-       // *************** CODI PRÀCTICA **********************/
-       try {
-        FileOutputStream fos = new FileOutputStream(filePath);
-
-        ObjectOutputStream oss = new ObjectOutputStream(fos);
-        oss.writeObject(persones);
-        
-        oss.close();
-        fos.close();
-
-       } catch (FileNotFoundException e) {
-        System.out.println("El ficherpo no se encontró: " + e.getMessage());
-       } catch (IOException e) {
-        System.out.println("Error de Entrada/Salida: " + e.getMessage());
-       }
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(filePath))) {
+            for (Entry<String, Integer> entry : persones.entrySet()) {
+                dos.writeUTF(entry.getKey());
+                dos.writeInt(entry.getValue()); 
+            }
+        } catch (FileNotFoundException e) {
+            throw new IOFitxerExcepcio("El fitxer no s'ha trobat: " + filePath, e);
+        } catch (IOException e) {
+            throw new IOFitxerExcepcio("Error escrivint les dades al fitxer: " + filePath, e);
+        }
     }
 
-    // Mètode per llegir les persones des del fitxer
     public static void llegirPersones() throws IOFitxerExcepcio {
-        // *************** CODI PRÀCTICA **********************/
-        try {
-            FileInputStream fis = new FileInputStream(filePath);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-
-            @SuppressWarnings("unchecked")
-            HashMap<String, Integer> persones = (HashMap<String, Integer>) ois.readObject();
-
-            for (Entry<String, Integer> entry : persones.entrySet()) {
-                String nombre = entry.getKey();
-                int edad = entry.getValue();
-                System.out.println(nombre + ": " + edad + " anys");
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(filePath))) {
+            System.out.println("Contingut del fitxer:");
+            while (true) {
+                String nom = dis.readUTF(); 
+                int edad = dis.readInt(); 
+                System.out.println(nom + ": " + edad + " anys");
             }
-
-            ois.close();
-            fis.close();
-            
+        } catch (EOFException e) {
         } catch (FileNotFoundException e) {
-            System.out.println("El ficherpo no se encontró: " + e.getMessage());
+            throw new IOFitxerExcepcio("El fitxer no s'ha trobat: " + filePath, e);
         } catch (IOException e) {
-            System.out.println("Error de Entrada/Salida: " + e.getMessage());
-        } catch (ClassNotFoundException e) {
-            System.out.println("La clase no se encontró: " + e.getMessage());;
-        } 
+            throw new IOFitxerExcepcio("Error llegint les dades del fitxer: " + filePath, e);
+        }
     }
 }
